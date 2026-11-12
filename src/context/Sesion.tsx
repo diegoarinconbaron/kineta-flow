@@ -27,6 +27,8 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
 
   const cargarPerfil = useCallback(async (s: Session | null) => {
     if (!s) { setMiembro(null); setNegocio(null); setConfig(null); setCargando(false); return }
+    // el canal de tiempo real debe usar el token del usuario para que las políticas por negocio dejen pasar los eventos
+    supabase.realtime.setAuth(s.access_token)
     const { data: m } = await supabase.from('miembros_negocio').select('*').eq('usuario_id', s.user.id).limit(1).single()
     if (m) {
       setMiembro(m as Miembro)
