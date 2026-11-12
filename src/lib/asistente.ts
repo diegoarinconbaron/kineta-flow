@@ -46,7 +46,7 @@ const NIVELES: Record<string, string[]> = {
 /** Herramienta 1: consultar el catálogo activo */
 export function consultarCatalogo(texto: string, servicios: Servicio[]): Servicio | null {
   const t = normalizar(texto)
-  const palabras = t.split(' ').filter((p) => p.length > 1 && !PALABRAS_VACIAS.has(p))
+  const palabras = t.split(' ').filter((p) => (p.length > 1 || /\d/.test(p)) && !PALABRAS_VACIAS.has(p))
   if (!palabras.length) return null
   let mejor: Servicio | null = null
   let mejorPuntaje = 0
@@ -70,8 +70,11 @@ export function consultarCatalogo(texto: string, servicios: Servicio[]): Servici
 
 function extraerCantidad(texto: string): number | null {
   const t = normalizar(texto)
-  const m = t.match(/(\d+)\s*(horas?|h\b|hrs?|unidades?|sistemas?|paneles?|puntos?|clases?|sesiones?)?/)
-  if (m) return Math.min(200, parseInt(m[1], 10))
+  const conUnidad = t.match(/(\d+)\s*(horas?|h|hrs?|unidades?|sistemas?|paneles?|puntos?|clases?|sesiones?)\b/)
+  if (conUnidad) return Math.min(200, parseInt(conUnidad[1], 10))
+  // un número suelto ("serían 10") cuenta como cantidad solo en mensajes cortos y si no es una potencia (5 kWp)
+  const suelto = t.match(/(\d+)(?!\s*(kwp|kw|kwh|w)\b)/)
+  if (suelto && t.split(' ').length <= 4) return Math.min(200, parseInt(suelto[1], 10))
   const palabras: Record<string, number> = { una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, ocho: 8, diez: 10, doce: 12, quince: 15, veinte: 20 }
   for (const [p, n] of Object.entries(palabras)) if (new RegExp(`\\b${p}\\s+(horas?|clases?|sesiones?)`).test(t)) return n
   return null

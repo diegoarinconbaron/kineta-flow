@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Configuracion, Miembro, Negocio } from '../lib/tipos'
@@ -23,6 +23,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   const [miembro, setMiembro] = useState<Miembro | null>(null)
   const [negocio, setNegocio] = useState<Negocio | null>(null)
   const [config, setConfig] = useState<Configuracion | null>(null)
+  const usuarioActual = useRef<string | null>(null)
 
   const cargarPerfil = useCallback(async (s: Session | null) => {
     if (!s) { setMiembro(null); setNegocio(null); setConfig(null); setCargando(false); return }
@@ -40,11 +41,19 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { setSesion(data.session); cargarPerfil(data.session) })
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    supabase.auth.getSession().then(({ data }) => {
+      usuarioActual.current = data.session?.user.id ?? null
+      setSesion(data.session); cargarPerfil(data.session)
+    })
+    const { data: sub } = supabase.auth.onAuthStateChange((evento, s) => {
       setSesion(s)
-      setCargando(true)
-      setTimeout(() => cargarPerfil(s), 0)
+      // recargar el perfil solo cuando cambia el usuario (no en cada renovación de token o cambio de pestaña)
+      const id = s?.user.id ?? null
+      if (evento !== 'INITIAL_SESSION' && id !== usuarioActual.current) {
+        usuarioActual.current = id
+        setCargando(true)
+        setTimeout(() => cargarPerfil(s), 0)
+      }
     })
     return () => sub.subscription.unsubscribe()
   }, [cargarPerfil])
