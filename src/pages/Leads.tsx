@@ -70,7 +70,7 @@ export default function Leads() {
                 <div className="mt-3 space-y-2">
                   {ORDEN.map((e) => (
                     <label key={e} className="flex cursor-pointer items-center gap-2 text-sm">
-                      <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-indigo-600" checked={borrador.includes(e)}
+                      <input type="checkbox" aria-label={ESTADOS[e].etiqueta} className="h-4 w-4 rounded border-slate-300 accent-indigo-600" checked={borrador.includes(e)}
                         onChange={() => setBorrador(borrador.includes(e) ? borrador.filter((x) => x !== e) : [...borrador, e])} />
                       <EtiquetaEstado estado={e} /><span className="ml-auto text-xs text-slate-400">{conteo[e]}</span>
                     </label>

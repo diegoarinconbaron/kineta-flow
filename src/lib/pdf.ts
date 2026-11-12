@@ -4,11 +4,14 @@ import { fechaLarga, pesos } from './formato'
 
 /** Genera el PDF de una cotización a partir de los datos guardados y lo abre en una pestaña nueva */
 export async function abrirCotizacionPdf(cotizacionId: string) {
+  // la pestaña se abre en el mismo clic (antes de consultar los datos) para que el navegador no la bloquee
+  const ventana = window.open('', '_blank')
+  ventana?.document.write('<p style="font-family:sans-serif;padding:24px">Generando cotización…</p>')
   const { data: c } = await supabase
     .from('cotizaciones')
     .select('*, items_cotizacion(*), conversaciones(clientes(nombre, telefono)), catalogos(version, archivo_origen), negocios(nombre, ciudad, telefono_whatsapp)')
     .eq('id', cotizacionId).single()
-  if (!c) return
+  if (!c) { ventana?.close(); return }
   const doc = new jsPDF({ unit: 'pt', format: 'letter' })
   const W = doc.internal.pageSize.getWidth()
   const noche: [number, number, number] = [14, 19, 48]
@@ -52,15 +55,17 @@ export async function abrirCotizacionPdf(cotizacionId: string) {
     doc.text(etiqueta, 400, y, { align: 'right' }); doc.text(valor, W - 56, y, { align: 'right' }); y += negrita ? 26 : 18
   }
   totalFila('Subtotal', pesos(c.subtotal))
-  if (Number(c.descuento) > 0) totalFila('Descuento por paquete', '−' + pesos(c.descuento))
-  doc.setFillColor(...noche); doc.roundedRect(330, y - 6, W - 378, 34, 6, 6, 'F')
+  if (Number(c.descuento) > 0) totalFila('Descuento por paquete', '-' + pesos(c.descuento))
+  doc.setFillColor(...noche); doc.roundedRect(270, y - 6, W - 318, 34, 6, 6, 'F')
   doc.setTextColor(255, 255, 255); y += 16; totalFila('Total a pagar', pesos(c.total), true)
 
   doc.setTextColor(110, 116, 140); doc.setFont('helvetica', 'normal'); doc.setFontSize(9)
   const nota = `Precios tomados del catálogo activo (versión ${c.catalogos.version}, ${c.catalogos.archivo_origen}) validado por ${c.negocios.nombre}. ` +
     'Para becas, descuentos especiales o formas de pago, un asesor confirma las condiciones.'
   doc.text(doc.splitTextToSize(nota, W - 96), 48, y + 30)
-  doc.setTextColor(...indigo); doc.text('Atendido por Kineta Flow · kineta-flow', 48, 740)
+  doc.setTextColor(...indigo); doc.text('Atendido por Kineta Flow · kineta-flow.vercel.app', 48, 740)
 
-  window.open(doc.output('bloburl'), '_blank')
+  const url = String(doc.output('bloburl'))
+  if (ventana) ventana.location.href = url
+  else window.location.href = url
 }
