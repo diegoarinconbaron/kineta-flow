@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { @apply bg-fondo text-noche antialiased; }
+
+@layer components {
+  .tarjeta { @apply bg-white rounded-xl shadow-tarjeta border border-slate-200/70; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-primario { @apply btn bg-indigo-600 text-white hover:bg-indigo-700; }
+  .btn-secundario { @apply btn bg-white text-noche border border-slate-300 hover:bg-slate-50; }
+  .btn-urgente { @apply btn bg-urgente text-white hover:bg-red-700; }
+  .btn-fantasma { @apply btn text-slate-600 hover:bg-slate-100; }
+  .campo { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-100; }
+  .etiqueta-campo { @apply block text-xs font-medium text-slate-600 mb-1; }
+}
+
+.wa-fondo {
+  background-color: #EFE7DD;
+  background-image: radial-gradient(rgba(0,0,0,.035) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+@keyframes puntos { 0%, 80%, 100% { opacity: .2 } 40% { opacity: 1 } }
+.escribiendo span { animation: puntos 1.2s infinite; }
+.escribiendo span:nth-child(2) { animation-delay: .2s; }
+.escribiendo span:nth-child(3) { animation-delay: .4s; }
