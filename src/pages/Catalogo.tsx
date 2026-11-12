@@ -100,10 +100,12 @@ export default function Catalogo() {
   const procesar = async (f: File) => {
     setError(''); setExito(''); setPrevia(null); setArchivo(f); setProgreso(8)
     if (!/\.(xlsx|xls|csv)$/i.test(f.name)) { setError('El archivo debe ser de Excel (.xlsx o .xls) o CSV.'); setArchivo(null); return }
-    const buffer = await f.arrayBuffer()
+    // los CSV se leen como texto UTF-8 para conservar tildes y eñes; los Excel, como archivo binario
+    const esCsv = /\.csv$/i.test(f.name)
+    const contenido = esCsv ? await f.text() : await f.arrayBuffer()
     for (const p of [30, 55, 80]) { await new Promise((r) => setTimeout(r, 180)); setProgreso(p) }
     try {
-      const filas = analizar(XLSX.read(buffer))
+      const filas = analizar(esCsv ? XLSX.read(contenido as string, { type: 'string' }) : XLSX.read(contenido))
       setProgreso(100)
       if (!filas.length) { setError('No encontramos servicios en la primera hoja del archivo. Revisa que tenga una columna «Servicio» y otra «Tarifa».'); return }
       setPrevia(filas)
