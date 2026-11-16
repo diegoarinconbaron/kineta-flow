@@ -132,7 +132,7 @@ export default function Conversaciones() {
   return (
     <div className="flex h-full min-h-0">
       {/* Bandeja */}
-      <section className={clsx('flex w-full shrink-0 flex-col border-r border-slate-200 bg-white md:w-80 lg:w-96', seleccion && 'hidden md:flex')}>
+      <section className={clsx('flex w-full shrink-0 flex-col border-r border-slate-200 bg-white md:w-80 2xl:w-96', seleccion && 'hidden md:flex')}>
         <div className="border-b border-slate-200 p-4">
           <h1 className="text-lg font-semibold">Conversaciones</h1>
           <div className="mt-3 flex flex-wrap gap-1" role="tablist">
@@ -238,7 +238,7 @@ export default function Conversaciones() {
 
       {/* Resumen para el asesor */}
       {conv && (
-        <aside className="hidden w-80 shrink-0 overflow-y-auto border-l border-slate-200 bg-white p-4 xl:block">
+        <aside className="hidden w-72 shrink-0 2xl:w-80 overflow-y-auto border-l border-slate-200 bg-white p-4 xl:block">
           <h2 className="flex items-center gap-2 font-semibold"><Sparkles className="h-4 w-4 text-indigo-600" />Resumen para el asesor</h2>
           <p className="text-xs text-slate-500">Generado por el asistente al pasar la conversación</p>
           {traspaso ? (
