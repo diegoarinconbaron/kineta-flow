@@ -74,7 +74,8 @@ ${catalogo}`
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
-  const clave = Deno.env.get('ANTHROPIC_API_KEY')
+  // acepta también el nombre con espacios, por si el secreto se guardó así en el panel
+  const clave = Deno.env.get('ANTHROPIC_API_KEY') ?? Deno.env.get('ANTHROPIC API KEY')
   if (!clave) return Response.json({ error: 'sin_clave' }, { status: 503, headers: CORS })
   try {
     const e = (await req.json()) as Entrada
@@ -96,7 +97,7 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { 'x-api-key': clave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: MODELO, max_tokens: 400, temperature: 0, system: sistema(e),
+        model: MODELO, max_tokens: 400, system: sistema(e),
         tools: HERRAMIENTAS, tool_choice: { type: 'any' }, messages: mensajes,
       }),
     })
