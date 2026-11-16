@@ -32,9 +32,10 @@ Contraseña de todas: `KinetaFlow2026`
 
 ![Arquitectura](docs/arquitectura.png)
 
+- **Manual de marca:** `docs/manual_de_marca.html`.
 - **Interfaz:** React 18 + TypeScript + Vite + Tailwind CSS (tipografía Poppins, paleta del manual de marca).
 - **Backend:** Supabase — PostgreSQL con seguridad a nivel de fila (cada negocio solo ve sus datos), autenticación, tiempo real.
-- **Asistente:** `src/lib/asistente.ts`. No responde preguntas abiertas: solo actúa con tres herramientas (`consultarCatalogo`, `generarCotizacion`, `solicitarAsesor`), en línea con la política de WhatsApp Business de 2026 que prohíbe asistentes de propósito general. En el prototipo la intención se interpreta con reglas en español; en la fase piloto la interpretará un modelo de lenguaje que llama a estas mismas herramientas desde una función en la nube, conectado a la API oficial de WhatsApp.
+- **Asistente:** `src/lib/asistente.ts` + función en la nube `supabase/functions/interpretar-mensaje`. No responde preguntas abiertas: solo actúa con tres herramientas (consultar catálogo, generar cotización, solicitar asesor), en línea con la política de WhatsApp Business de 2026 que prohíbe asistentes de propósito general. Claude Haiku interpreta cada mensaje y elige la herramienta y sus parámetros; el código valida la decisión contra el catálogo y escribe el precio. Las reglas del dueño se aplican antes del modelo, y si el modelo falla o tarda más de 12 s se usa un motor de reglas en español. Cada mensaje guarda en `mensajes.motor` qué motor lo resolvió. La clave se configura como secreto de la función (`ANTHROPIC_API_KEY`), nunca en el navegador.
 - **Cotizaciones:** PDF generado con jsPDF a partir de los datos guardados (`src/lib/pdf.ts`).
 
 ## Base de datos
