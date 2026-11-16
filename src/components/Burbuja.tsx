@@ -25,7 +25,9 @@ export function Burbuja({ m, modo, numeroCot, onBoton }: {
           : deCliente ? 'bg-white border border-slate-200 rounded-tl-sm' : m.emisor === 'ia' ? 'bg-indigo-50 border border-indigo-100 rounded-tr-sm' : 'bg-noche text-white rounded-tr-sm')}>
         {modo === 'panel' && !deCliente && (
           <div className={clsx('mb-0.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide', m.emisor === 'ia' ? 'text-indigo-600' : 'text-indigo-200')}>
-            {m.emisor === 'ia' ? <><Bot className="h-3 w-3" />Asistente IA</> : <><UserRound className="h-3 w-3" />Asesor</>}
+            {m.emisor === 'ia'
+              ? <><Bot className="h-3 w-3" />Asistente IA{m.motor && <span className="font-normal normal-case tracking-normal text-indigo-400">· {m.motor === 'claude' ? 'interpretado por Claude' : 'motor de reglas'}</span>}</>
+              : <><UserRound className="h-3 w-3" />Asesor</>}
           </div>
         )}
         {adj?.tipo === 'cotizacion' && (

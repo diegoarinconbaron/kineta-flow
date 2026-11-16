@@ -84,6 +84,7 @@ export interface Mensaje {
   emisor: Emisor
   contenido: string
   adjunto: null | { tipo: 'cotizacion'; cotizacion_id: string } | { tipo: 'botones'; opciones: string[] } | { tipo: 'precio'; servicio_id: string }
+  motor?: 'claude' | 'reglas' | null
   creado_en: string
 }
 

@@ -8,9 +8,11 @@
  *   2. generarCotizacion  -> crea la cotización (la base de datos rechaza servicios sin tarifa)
  *   3. solicitarAsesor    -> pasa la conversación a una persona con un resumen
  *
- * En el prototipo, la intención del mensaje se interpreta con reglas en español.
- * En la fase piloto, esa interpretación la hará un modelo de lenguaje que llama
- * a estas mismas tres herramientas (ver README).
+ * La intención del mensaje la interpreta Claude (función en la nube «interpretar-mensaje»),
+ * que solo puede elegir una herramienta y sus parámetros. El código valida esa decisión
+ * contra el catálogo y escribe él mismo los precios: el modelo nunca redacta una cifra.
+ * Dos reglas del dueño se aplican antes que el modelo (pedir un asesor y los casos delicados),
+ * y si Claude no está disponible o su decisión no es válida, responde el motor de reglas.
  */
 import { supabase } from './supabase'
 import { normalizar, pesos } from './formato'
@@ -25,6 +27,8 @@ interface Contexto {
   catalogoId: string | null
   historial: Mensaje[]
   cliente: { nombre: string; municipio: string | null; datos_contexto: Record<string, unknown> }
+  /** quién interpretó el mensaje: el modelo de lenguaje o el motor de reglas (se guarda en cada respuesta) */
+  motor: 'claude' | 'reglas'
 }
 
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -98,12 +102,12 @@ async function cargarContexto(conversacionId: string): Promise<Contexto> {
   }
   return {
     negocioId: c.negocio_id, negocioNombre: neg?.nombre ?? '', config: config as Configuracion, conversacion: c,
-    servicios, catalogoId: cat?.id ?? null, historial: (hist ?? []) as Mensaje[], cliente: c.clientes,
+    servicios, catalogoId: cat?.id ?? null, historial: (hist ?? []) as Mensaje[], cliente: c.clientes, motor: 'reglas',
   }
 }
 
 async function responder(ctx: Contexto, contenido: string, adjunto: Mensaje['adjunto'] = null) {
-  await supabase.from('mensajes').insert({ conversacion_id: ctx.conversacion.id, negocio_id: ctx.negocioId, emisor: 'ia', contenido, adjunto })
+  await supabase.from('mensajes').insert({ conversacion_id: ctx.conversacion.id, negocio_id: ctx.negocioId, emisor: 'ia', contenido, adjunto, motor: ctx.motor })
   await supabase.from('conversaciones').update({ ultimo_mensaje_en: new Date().toISOString() }).eq('id', ctx.conversacion.id)
 }
 
@@ -196,11 +200,14 @@ export async function procesarMensajeCliente(conversacionId: string, texto: stri
     return
   }
 
-  // 3) Señales de compra
+  // 3) Interpretación con Claude (si está configurado). Si falla, siguen las reglas.
+  const decision = await interpretarConIA(ctx, texto)
+  if (decision && await ejecutarDecision(ctx, decision, texto)) return
+  ctx.motor = 'reglas'
+
+  // 4) Señales de compra
   if (coincide(texto, /\b(agendar|agenda|inscribir|inscribirlo|inscribirla|empezar|comenzar|comprar|contratar|reservar|lo quiero|la quiero|me interesa contratar|como pago|pagar)\b/)) {
-    await supabase.from('conversaciones').update({ estado_lead: 'listo_para_comprar' }).eq('id', ctx.conversacion.id)
-    await responder(ctx, `¡Excelente, ${nombre}! Ya le avisé al equipo para confirmar los detalles contigo y dejarlo todo listo.`)
-    await solicitarAsesor(ctx, 'El cliente está listo para comprar', texto)
+    await accionAsesor(ctx, 'El cliente está listo para comprar', texto, true)
     return
   }
 
@@ -209,35 +216,16 @@ export async function procesarMensajeCliente(conversacionId: string, texto: stri
   const previo = ultimoServicioMencionado(ctx)
   const pideCotizacion = coincide(texto, /\b(cotiz\w*|envia\w*|manda\w*|pdf|si|dale|listo|claro|perfecto|de una)\b/)
 
-  // 4) Hay un servicio del catálogo en el mensaje
+  // 5) Hay un servicio del catálogo en el mensaje
   const servicio = encontrado ?? ((cantidad || pideCotizacion) ? previo : null)
   if (servicio) {
-    if (servicio.tarifa == null || servicio.estado !== 'listo') {
-      await responder(ctx, `${servicio.nombre} lo cotiza directamente un asesor porque requiere revisar tu caso. Ya le avisé al equipo.`)
-      await solicitarAsesor(ctx, `Servicio sin tarifa validada en el catálogo: ${servicio.nombre}`, texto)
-      return
-    }
     const porHora = servicio.unidad === 'hora'
-    if (cantidad || (pideCotizacion && !porHora && previo)) {
-      try {
-        await generarCotizacion(ctx, servicio, cantidad ?? 1)
-      } catch {
-        await responder(ctx, 'No pude generar la cotización con el catálogo vigente. Ya le avisé a un asesor.')
-        await solicitarAsesor(ctx, 'Error al generar la cotización', texto)
-      }
-      return
-    }
-    const nivel = servicio.nivel ? ` (${servicio.nivel})` : ''
-    const extra = porHora
-      ? ` Si tomas ${ctx.config.descuento_paquete.minimo} horas o más, tienes ${ctx.config.descuento_paquete.porcentaje} % de descuento. ¿Cuántas horas te gustaría?`
-      : ' ¿Quieres que te envíe la cotización formal?'
-    await responder(ctx, `${servicio.nombre}${nivel} tiene un valor de ${pesos(servicio.tarifa)} por ${servicio.unidad}.${extra}`,
-      { tipo: 'precio', servicio_id: servicio.id })
-    await supabase.from('conversaciones').update({ necesidad: servicio.nombre + nivel }).eq('id', ctx.conversacion.id)
+    if (cantidad || (pideCotizacion && !porHora && previo)) await accionCotizar(ctx, servicio, cantidad ?? 1, texto)
+    else await accionPrecio(ctx, servicio, texto)
     return
   }
 
-  // 5) Conversación básica
+  // 6) Conversación básica
   if (/^(hola|buenas|buenos dias|buenas tardes|buenas noches|hey|ola)\b/.test(t) && t.split(' ').length <= 4) {
     await responder(ctx, `¡Hola, ${nombre}! Soy ${ctx.config.nombre_asistente}, el asistente de ${ctx.negocioNombre}. Puedo darte precios, enviarte una cotización formal o pasarte con un asesor. ¿Qué necesitas?`)
     return
@@ -247,7 +235,97 @@ export async function procesarMensajeCliente(conversacionId: string, texto: stri
     return
   }
 
-  // 6) Fuera del alcance del catálogo: nunca improvisa, pasa a una persona
-  await responder(ctx, `No tengo esa información confirmada, ${nombre}, y prefiero no darte un dato equivocado. Ya le pasé tu pregunta a un asesor de ${ctx.negocioNombre}.`)
-  await solicitarAsesor(ctx, 'Consulta fuera del catálogo validado', texto)
+  // 7) Fuera del alcance del catálogo: nunca improvisa, pasa a una persona
+  await accionAsesor(ctx, 'Consulta fuera del catálogo validado', texto, false)
+}
+
+/* ---------- Acciones: el texto con precios SIEMPRE lo escribe el código con el catálogo activo ---------- */
+
+async function accionPrecio(ctx: Contexto, servicio: Servicio, texto: string) {
+  if (servicio.tarifa == null || servicio.estado !== 'listo') return accionSinTarifa(ctx, servicio, texto)
+  const nivel = servicio.nivel ? ` (${servicio.nivel})` : ''
+  const extra = servicio.unidad === 'hora'
+    ? ` Si tomas ${ctx.config.descuento_paquete.minimo} horas o más, tienes ${ctx.config.descuento_paquete.porcentaje} % de descuento. ¿Cuántas horas te gustaría?`
+    : ' ¿Quieres que te envíe la cotización formal?'
+  await responder(ctx, `${servicio.nombre}${nivel} tiene un valor de ${pesos(servicio.tarifa)} por ${servicio.unidad}.${extra}`,
+    { tipo: 'precio', servicio_id: servicio.id })
+  await supabase.from('conversaciones').update({ necesidad: servicio.nombre + nivel }).eq('id', ctx.conversacion.id)
+}
+
+async function accionCotizar(ctx: Contexto, servicio: Servicio, cantidad: number, texto: string) {
+  if (servicio.tarifa == null || servicio.estado !== 'listo') return accionSinTarifa(ctx, servicio, texto)
+  try {
+    await generarCotizacion(ctx, servicio, cantidad)
+  } catch {
+    await responder(ctx, 'No pude generar la cotización con el catálogo vigente. Ya le avisé a un asesor.')
+    await solicitarAsesor(ctx, 'Error al generar la cotización', texto)
+  }
+}
+
+async function accionSinTarifa(ctx: Contexto, servicio: Servicio, texto: string) {
+  await responder(ctx, `${servicio.nombre} lo cotiza directamente un asesor porque requiere revisar tu caso. Ya le avisé al equipo.`)
+  await solicitarAsesor(ctx, `Servicio sin tarifa validada en el catálogo: ${servicio.nombre}`, texto)
+}
+
+async function accionAsesor(ctx: Contexto, motivo: string, texto: string, listo: boolean) {
+  const nombre = ctx.cliente.nombre.split(' ')[0]
+  if (listo) {
+    await supabase.from('conversaciones').update({ estado_lead: 'listo_para_comprar' }).eq('id', ctx.conversacion.id)
+    ctx.conversacion.estado_lead = 'listo_para_comprar'
+    await responder(ctx, `¡Excelente, ${nombre}! Ya le avisé al equipo para confirmar los detalles contigo y dejarlo todo listo.`)
+  } else {
+    await responder(ctx, `No tengo esa información confirmada, ${nombre}, y prefiero no darte un dato equivocado. Ya le pasé tu mensaje a un asesor de ${ctx.negocioNombre}.`)
+  }
+  await solicitarAsesor(ctx, motivo, texto)
+}
+
+/* ---------- Claude: interpreta el mensaje y elige UNA herramienta ---------- */
+
+interface Decision { herramienta: string; parametros: Record<string, unknown> }
+
+async function interpretarConIA(ctx: Contexto, texto: string): Promise<Decision | null> {
+  try {
+    const historial = ctx.historial.filter((m) => m.emisor !== 'sistema').slice(0, -1).map((m) => ({ emisor: m.emisor, contenido: m.contenido }))
+    const servicios = ctx.servicios.map((s) => ({ id: s.id, nombre: s.nombre, nivel: s.nivel, unidad: s.unidad, tarifa: s.estado === 'listo' ? s.tarifa : null }))
+    const pendiente = supabase.functions.invoke('interpretar-mensaje', {
+      body: { mensaje: texto, historial, servicios, negocio: ctx.negocioNombre, asistente: ctx.config.nombre_asistente, tono: ctx.config.tono, descuento: ctx.config.descuento_paquete },
+    })
+    const limite = new Promise<null>((r) => setTimeout(() => r(null), 12000))
+    const res = await Promise.race([pendiente, limite])
+    if (!res || res.error || !res.data?.herramienta) return null
+    return res.data as Decision
+  } catch {
+    return null
+  }
+}
+
+/** Valida la decisión del modelo contra el catálogo. Devuelve false si no es válida (entonces deciden las reglas). */
+async function ejecutarDecision(ctx: Contexto, d: Decision, texto: string): Promise<boolean> {
+  const p = d.parametros ?? {}
+  const servicio = typeof p.servicio_id === 'string' ? ctx.servicios.find((s) => s.id === p.servicio_id) : undefined
+  ctx.motor = 'claude'
+  switch (d.herramienta) {
+    case 'informar_precio':
+      if (!servicio) return false
+      await accionPrecio(ctx, servicio, texto)
+      return true
+    case 'generar_cotizacion': {
+      const cantidad = Number(p.cantidad)
+      if (!servicio || !Number.isInteger(cantidad) || cantidad < 1 || cantidad > 200) return false
+      await accionCotizar(ctx, servicio, cantidad, texto)
+      return true
+    }
+    case 'solicitar_asesor':
+      await accionAsesor(ctx, `${String(p.motivo ?? 'El asistente pidió apoyo').slice(0, 160)} (interpretado por IA)`, texto, p.cliente_listo_para_comprar === true)
+      return true
+    case 'responder': {
+      const msg = String(p.mensaje ?? '').trim()
+      // nunca deja pasar cifras, precios ni respuestas largas escritas por el modelo
+      if (!msg || msg.length > 400 || /\$|cop|\d{3,}|\d+\s*%/i.test(msg)) return false
+      await responder(ctx, msg)
+      return true
+    }
+    default:
+      return false
+  }
 }
