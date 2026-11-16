@@ -135,7 +135,7 @@ export default function Conversaciones() {
       <section className={clsx('flex w-full shrink-0 flex-col border-r border-slate-200 bg-white md:w-80 lg:w-96', seleccion && 'hidden md:flex')}>
         <div className="border-b border-slate-200 p-4">
           <h1 className="text-lg font-semibold">Conversaciones</h1>
-          <div className="mt-3 flex gap-1 overflow-x-auto" role="tablist">
+          <div className="mt-3 flex flex-wrap gap-1" role="tablist">
             {PESTANAS.map((p) => (
               <button key={p.id} role="tab" aria-selected={pestana === p.id} onClick={() => setPestana(p.id)}
                 className={clsx('whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition',

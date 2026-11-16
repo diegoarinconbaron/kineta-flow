@@ -62,8 +62,12 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
 
   const recargarConfig = async () => {
     if (!miembro) return
-    const { data } = await supabase.from('configuracion_asistente').select('*').eq('negocio_id', miembro.negocio_id).single()
+    const [{ data }, { data: n }] = await Promise.all([
+      supabase.from('configuracion_asistente').select('*').eq('negocio_id', miembro.negocio_id).single(),
+      supabase.from('negocios').select('*').eq('id', miembro.negocio_id).single(),
+    ])
     setConfig(data as Configuracion)
+    if (n) setNegocio(n as Negocio)
   }
 
   const salir = async () => { await supabase.auth.signOut() }

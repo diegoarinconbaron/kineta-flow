@@ -9,7 +9,7 @@ import type { Catalogo as TCatalogo, Servicio } from '../lib/tipos'
 
 interface FilaPrevia {
   nombre: string; categoria: string | null; nivel: string | null; unidad: string; tarifa: number | null
-  estado: 'listo' | 'sin_tarifa' | 'revisar'; observacion: string | null
+  estado: 'listo' | 'sin_tarifa' | 'revisar'; observacion: string | null; tarifa_texto?: string
 }
 
 const COLUMNAS: Record<string, string[]> = {
@@ -56,6 +56,7 @@ function analizar(libro: XLSX.WorkBook): FilaPrevia[] {
       categoria: mapa.categoria ? String(f[mapa.categoria] ?? '').trim() || null : null,
       unidad: mapa.unidad ? String(f[mapa.unidad] ?? '').trim().toLowerCase() || 'hora' : 'hora',
       tarifa: tarifa == null || Number.isNaN(tarifa) ? null : tarifa,
+      tarifa_texto: tarifa != null && (Number.isNaN(tarifa) || tarifa <= 0) ? String(f[mapa.tarifa!] ?? '').trim() : undefined,
     })
   }
   return salida
@@ -249,7 +250,7 @@ export default function Catalogo() {
                     <td className="px-3 py-2 text-slate-600">{f.categoria ?? '—'}</td>
                     <td className="px-3 py-2 text-slate-600">{f.nivel ?? '—'}</td>
                     <td className="px-3 py-2 text-slate-600">{f.unidad}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{pesos(f.tarifa)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{f.tarifa_texto !== undefined ? <span className="text-red-700" title="Valor tal como viene en el archivo">«{f.tarifa_texto}»</span> : pesos(f.tarifa)}</td>
                     <td className="px-3 py-2"><Chip estado={f.estado} /></td>
                   </tr>
                 ))}

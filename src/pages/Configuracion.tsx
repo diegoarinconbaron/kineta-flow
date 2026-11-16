@@ -47,7 +47,10 @@ export default function Configuracion() {
   return (
     <div className="mx-auto max-w-5xl p-4 md:p-8">
       <h1 className="text-2xl font-semibold">Configuración del asistente</h1>
-      <p className="text-sm text-slate-500">Enséñale al asistente cómo atender a tus clientes. No necesitas saber de inteligencia artificial.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">Enséñale al asistente cómo atender a tus clientes. No necesitas saber de inteligencia artificial.</p>
+        {editable && <Link to="/configuracion/guiada" className="btn-secundario text-sm">Abrir la configuración guiada</Link>}
+      </div>
 
       <ol className="mt-6 grid gap-3 sm:grid-cols-4">
         {pasos.map((p, i) => (

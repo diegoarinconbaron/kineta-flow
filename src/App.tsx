@@ -8,6 +8,7 @@ import Catalogo from './pages/Catalogo'
 import Leads from './pages/Leads'
 import Conversaciones from './pages/Conversaciones'
 import Configuracion from './pages/Configuracion'
+import ConfiguracionGuiada from './pages/ConfiguracionGuiada'
 import Simulador from './pages/Simulador'
 
 function Rutas() {
@@ -22,6 +23,7 @@ function Rutas() {
         <Route path="leads" element={<Leads />} />
         <Route path="catalogo" element={<Catalogo />} />
         <Route path="configuracion" element={<Configuracion />} />
+        <Route path="configuracion/guiada" element={<ConfiguracionGuiada />} />
         <Route path="simulador" element={<Simulador />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
