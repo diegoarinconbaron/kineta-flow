@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>¿Cuántas ventas pierdes por responder tarde? · Blog Kineta Flow</title>
+<meta name="description" content="Cómo medir cuántas ventas pierde tu negocio por responder tarde en WhatsApp, con calculadora de ventas perdidas.">
+<link rel="icon" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root{
+  --bg:#F6F6FB; --papel:#FFFFFF; --tinta:#0E1330; --suave:#4A5072; --linea:#DCDDEB;
+  --indigo:#4F46E5; --indigo-suave:#EEF0FE; --naranja:#B45309; --naranja-suave:#FEF3C7; --verde:#15803D;
+  --display:"Poppins",ui-sans-serif,system-ui,sans-serif;
+  --texto:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --ui:"Poppins",ui-sans-serif,system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0B0F26; --papel:#131938; --tinta:#ECEDF7; --suave:#A9AECB; --linea:#2A3160;
+  --indigo:#8B85FF; --indigo-suave:#1D2350; --naranja:#FBBF24; --naranja-suave:#3A2C0B; --verde:#4ADE80; color-scheme:dark}}
+*{box-sizing:border-box}
+img{max-width:100%}
+body{margin:0;background:var(--bg);color:var(--tinta);font-family:var(--texto);font-size:19px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.marca{max-width:760px;margin:0 auto;padding-block:22px;display:flex;align-items:center;gap:10px;font-family:var(--ui);font-weight:600;font-size:15px}
+.marca a{color:inherit;text-decoration:none;display:flex;align-items:center;gap:10px}
+.marca svg{width:30px;height:30px}
+.marca span{color:var(--suave);font-weight:500}
+article{max-width:680px;margin:0 auto}
+.eyebrow{font-family:var(--ui);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--indigo);font-weight:600;margin-top:32px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,54px);line-height:1.05;letter-spacing:-.02em;margin:.3em 0 .4em;text-wrap:balance}
+.bajada{font-size:22px;color:var(--suave);margin:0 0 1.2em}
+.meta{font-family:var(--ui);font-size:13px;color:var(--suave);border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);padding-block:10px;margin-bottom:2em}
+h2{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.2;margin:1.8em 0 .5em;text-wrap:balance}
+p{margin:0 0 1.1em}
+.dato{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;background:var(--papel);border:1px solid var(--linea);border-radius:14px;padding:18px 22px;margin:1.4em 0}
+.dato b{font-family:var(--display);font-size:46px;line-height:1;color:var(--indigo);font-weight:800}
+.dato div{font-size:17px;line-height:1.5;min-width:0}
+.dato small{display:block;font-family:var(--ui);font-size:12px;color:var(--suave);margin-top:4px}
+ol.pasos{padding-left:1.2em}ol.pasos li{margin-bottom:.6em}
+.calc{max-width:880px;margin:2.4em auto;background:var(--papel);border:1px solid var(--linea);border-radius:20px;overflow:hidden}
+.calc header{background:var(--tinta);color:var(--bg);padding:22px 26px}
+.calc header h2{margin:0;color:inherit;font-size:24px}
+.calc header p{margin:.3em 0 0;font-family:var(--ui);font-size:14px;opacity:.8}
+.calc .cuerpo{display:grid;grid-template-columns:1.1fr 1fr;gap:0}
+.campos{padding:24px 26px;display:grid;gap:18px;font-family:var(--ui)}
+.campo label{display:flex;justify-content:space-between;gap:12px;font-size:14px;font-weight:600}
+.campo label output{font-variant-numeric:tabular-nums;color:var(--indigo)}
+.campo small{display:block;font-size:12px;color:var(--suave);margin-top:2px;line-height:1.45}
+input[type=range]{width:100%;accent-color:var(--indigo);margin-top:6px}
+input[type=number]{width:100%;font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--linea);border-radius:8px;background:var(--bg);color:var(--tinta);margin-top:6px}
+input:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+.resultado{background:var(--indigo-suave);padding:24px 26px;display:flex;flex-direction:column;gap:14px;font-family:var(--ui)}
+.resultado .grande{font-family:var(--display);font-size:clamp(34px,5vw,48px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--tinta)}
+.resultado .etq{font-size:13px;color:var(--suave)}
+.fila{display:flex;justify-content:space-between;gap:12px;font-size:14px;border-top:1px solid var(--linea);padding-top:10px}
+.fila b{font-variant-numeric:tabular-nums}
+.supuesto{font-size:12px;line-height:1.5;color:var(--suave);background:var(--papel);border-radius:10px;padding:10px 12px}
+.cta{display:inline-flex;align-items:center;gap:10px;background:var(--indigo);color:#fff;text-decoration:none;font-family:var(--ui);font-weight:600;font-size:16px;padding:14px 22px;border-radius:999px;margin-top:4px;width:fit-content}
+.cta:hover{filter:brightness(1.08)}.cta:focus-visible{outline:3px solid var(--naranja);outline-offset:3px}
+.nota{background:var(--naranja-suave);border-radius:12px;padding:16px 20px;font-size:17px}
+.fuentes{font-family:var(--ui);font-size:13px;color:var(--suave);border-top:1px solid var(--linea);margin-top:3em;padding-top:1em;line-height:1.6}
+.fuentes a{color:var(--indigo)}
+@media (max-width:720px){.calc .cuerpo{grid-template-columns:1fr}.dato{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="marca">
+  <a href="/"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#4F46E5"/><path d="M20 14v36M20 34l18-20M27 28l13 22" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="48" cy="16" r="6" fill="#16A34A" stroke="#fff" stroke-width="2.5"/></svg>
+  kineta flow</a> <span>· Blog</span>
+</div>
+
+<article>
+  <div class="eyebrow">Ventas por WhatsApp</div>
+  <h1>¿Cuántas ventas pierdes por responder tarde?</h1>
+  <p class="bajada">Si tu negocio vende por WhatsApp, cada mensaje que llega de noche o un domingo es una cotización que alguien más puede enviar primero. Así puedes medirlo.</p>
+  <div class="meta">Equipo Kineta Flow · Lectura de 4 minutos</div>
+
+  <p>Marcia tiene un centro de monitorías en Bogotá. En semana de parciales, los mensajes de padres y estudiantes le llegan hasta pasada la medianoche. Ella responde los que alcanza desde su celular personal. Los demás esperan hasta las 8 de la mañana.</p>
+  <p>El problema es que quien escribe a esa hora casi nunca le escribe solo a un negocio. Pregunta en tres o cuatro lugares al mismo tiempo y se queda con el primero que le responde con un precio claro.</p>
+
+  <h2>La primera hora vale más que todas las demás</h2>
+  <p>Un estudio publicado en Harvard Business Review revisó cómo respondían más de 2.000 empresas a sus clientes potenciales. Las que contactaban al cliente durante la primera hora tenían cerca de siete veces más probabilidades de concretar una conversación útil con él que las que respondían después.</p>
+  <div class="dato"><b>7×</b><div>más probabilidad de calificar a un cliente potencial si le respondes en la primera hora.<small>Oldroyd, McElheran y Elkington (2011), Harvard Business Review.</small></div></div>
+  <p>En Colombia el canal donde ocurre esa carrera es WhatsApp. El 87 % de las mipymes lo usa como su principal canal de ventas, pero solo el 25 % tiene herramientas para atenderlo a escala.</p>
+  <div class="dato"><b>87 %</b><div>de las mipymes colombianas vende principalmente por WhatsApp; solo el 25 % cuenta con herramientas transaccionales.<small>Marketing4eCommerce (2025), con datos de la APPCE.</small></div></div>
+
+  <h2>Mide tu tiempo de respuesta en una semana</h2>
+  <ol class="pasos">
+    <li>Durante siete días, anota a qué hora llegó cada consulta de un cliente nuevo y a qué hora respondiste por primera vez.</li>
+    <li>Marca cuáles llegaron fuera de tu horario: entre semana después del cierre, sábados en la tarde, domingos y festivos.</li>
+    <li>Cuenta cuántas de esas personas no volvieron a escribir después de tu respuesta.</li>
+  </ol>
+  <p>Con esos tres datos ya puedes estimar cuánto te cuesta la demora. La calculadora hace la cuenta por ti.</p>
+</article>
+
+<section class="calc" aria-labelledby="titulo-calc">
+  <header><h2 id="titulo-calc">Calculadora de ventas perdidas</h2><p>Mueve los valores para que se parezcan a tu negocio. Es una estimación, no una promesa.</p></header>
+  <div class="cuerpo">
+    <form class="campos" id="formulario">
+      <div class="campo"><label for="mensajes">Consultas nuevas fuera de horario por semana <output id="o-mensajes">25</output></label>
+        <input type="range" id="mensajes" min="1" max="150" value="25"><small>Mensajes de clientes nuevos que llegan cuando nadie puede responder.</small></div>
+      <div class="campo"><label for="perdida">De esas, cuántas se van con otro por la demora <output id="o-perdida">30 %</output></label>
+        <input type="range" id="perdida" min="5" max="80" step="5" value="30"><small>Supuesto editable. Mídelo con el paso 3 de arriba.</small></div>
+      <div class="campo"><label for="cierre">De las que sí atiendes a tiempo, cuántas compran <output id="o-cierre">35 %</output></label>
+        <input type="range" id="cierre" min="5" max="90" step="5" value="35"><small>Tu tasa de cierre habitual.</small></div>
+      <div class="campo"><label for="ticket">Valor promedio de una venta (COP)</label>
+        <input type="number" id="ticket" min="0" step="10000" value="400000" inputmode="numeric"><small>Ejemplo: un paquete de 10 horas de monitoría.</small></div>
+    </form>
+    <div class="resultado" aria-live="polite">
+      <div><div class="etq">Ventas que podrías estar dejando de cerrar al mes</div><div class="grande" id="r-dinero">$0</div></div>
+      <div class="fila"><span>Clientes que se van con otro al mes</span><b id="r-clientes">0</b></div>
+      <div class="fila"><span>Ventas perdidas al mes</span><b id="r-ventas">0</b></div>
+      <div class="fila"><span>Al año</span><b id="r-anio">$0</b></div>
+      <p class="supuesto">Cálculo: consultas por semana × 4,3 semanas × % que se va por la demora × tu tasa de cierre × valor promedio. Los valores iniciales son un ejemplo, no datos de tu negocio.</p>
+      <a class="cta" id="cta" href="/">Pídele una cotización al asistente →</a>
+    </div>
+  </div>
+</section>
+
+<article>
+  <h2>Qué puedes hacer desde hoy</h2>
+  <p><strong>Ten tus precios en un solo lugar.</strong> Si la lista de tarifas vive en tu cabeza o en un PDF viejo, nadie más puede responder por ti. Un Excel con servicio, nivel y tarifa ya es un gran avance.</p>
+  <p><strong>Define qué casos necesitan a una persona.</strong> Becas, descuentos especiales, financiación o una visita técnica no deberían resolverse con una respuesta automática. Escríbelos y decide quién los atiende.</p>
+  <p><strong>Deja que alguien responda mientras tú descansas.</strong> Ese alguien puede ser una persona en turno o un asistente que solo cotiza con los precios que tú validaste y te pasa al cliente cuando está listo para comprar.</p>
+  <p class="nota">Kineta Flow es el asistente que construimos en Kineta Lab para eso: responde por WhatsApp a cualquier hora, envía la cotización en PDF con tus tarifas y te avisa cuando un cliente necesita hablar contigo. Puedes probar la versión de demostración con el enlace de la calculadora.</p>
+
+  <div class="fuentes">
+    Fuentes:<br>
+    Oldroyd, J. B., McElheran, K. y Elkington, D. (2011). The short life of online sales leads. <em>Harvard Business Review, 89</em>(3), 28.<br>
+    Marketing4eCommerce (2025). <a href="https://marketing4ecommerce.co/mas-del-87-de-las-mipymes-en-colombia-utilizan-whatsapp-como-principal-canal-de-ventas/" target="_blank" rel="noopener">Más del 87 % de las mipymes en Colombia utilizan WhatsApp como principal canal de ventas</a>.
+  </div>
+</article>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=n=>'$'+Math.round(n).toLocaleString('es-CO');
+  function calcular(){
+    const m=+$('mensajes').value, p=+$('perdida').value/100, c=+$('cierre').value/100, t=Math.max(0,+$('ticket').value||0);
+    $('o-mensajes').textContent=m; $('o-perdida').textContent=Math.round(p*100)+' %'; $('o-cierre').textContent=Math.round(c*100)+' %';
+    const clientes=m*4.3*p, ventas=clientes*c, dinero=ventas*t;
+    $('r-clientes').textContent=Math.round(clientes); $('r-ventas').textContent=ventas.toFixed(1).replace('.',',');
+    $('r-dinero').textContent=fmt(dinero); $('r-anio').textContent=fmt(dinero*12);
+  }
+  ['mensajes','perdida','cierre','ticket'].forEach(id=>$(id).addEventListener('input',calcular));
+  $('formulario').addEventListener('submit',e=>e.preventDefault());
+  calcular();
+})();
+</script>
+</body>
+</html>
