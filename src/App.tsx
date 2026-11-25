@@ -11,10 +11,25 @@ import Configuracion from './pages/Configuracion'
 import ConfiguracionGuiada from './pages/ConfiguracionGuiada'
 import Simulador from './pages/Simulador'
 
+/** Cuenta válida que no pertenece a ningún negocio (por ejemplo, creada fuera de la app) */
+function SinNegocio() {
+  const { salir, sesion } = useSesion()
+  return (
+    <div className="flex h-full items-center justify-center p-6">
+      <div className="tarjeta max-w-md p-6 text-center">
+        <h1 className="text-lg font-semibold">Tu cuenta aún no tiene un negocio</h1>
+        <p className="mt-2 text-sm text-slate-600">{sesion?.user.email} inició sesión, pero no está asociada a ningún negocio en Kineta Flow. En el piloto, un asesor de Kineta Lab crea el negocio contigo. Para ver la demostración, entra con una de las cuentas de prueba.</p>
+        <button className="btn-primario mx-auto mt-4" onClick={salir}>Volver a las cuentas de prueba</button>
+      </div>
+    </div>
+  )
+}
+
 function Rutas() {
   const { cargando, sesion, miembro } = useSesion()
   if (cargando) return <div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-indigo-600" aria-label="Cargando" /></div>
-  if (!sesion || !miembro) return <Login />
+  if (!sesion) return <Login />
+  if (!miembro) return <SinNegocio />
   return (
     <Routes>
       <Route element={<Layout />}>

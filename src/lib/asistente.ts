@@ -176,6 +176,8 @@ function ultimoServicioMencionado(ctx: Contexto): Servicio | null {
 }
 
 /** Punto de entrada: procesa el mensaje del cliente y responde (o no, si un asesor tomó el chat) */
+const SENALES_COMPRA = /\b(agendar|agenda|inscribir|inscribirlo|inscribirla|empezar|comenzar|comprar|contratar|reservar|lo quiero|la quiero|me interesa contratar|como pago|pagar)\b/
+
 export async function procesarMensajeCliente(conversacionId: string, texto: string) {
   const ctx = await cargarContexto(conversacionId)
   if (ctx.conversacion.atendida_por === 'asesor') return // la IA está en pausa en este chat
@@ -185,10 +187,16 @@ export async function procesarMensajeCliente(conversacionId: string, texto: stri
   const t = normalizar(texto)
   const nombre = ctx.cliente.nombre.split(' ')[0]
 
-  // 1) El cliente pide una persona
+  // 1) El cliente pide una persona (si además quiere agendar o pagar, queda listo para comprar)
   if (coincide(texto, /\b(asesor|asesora|persona|humano|alguien|llamar|llamada|hablar con)\b/)) {
     await responder(ctx, `Claro, ${nombre}. Ya le avisé a un asesor de ${ctx.negocioNombre} y te escribe en unos minutos.`)
-    await solicitarAsesor(ctx, 'El cliente pidió hablar con una persona', texto)
+    if (coincide(texto, SENALES_COMPRA)) {
+      await supabase.from('conversaciones').update({ estado_lead: 'listo_para_comprar' }).eq('id', ctx.conversacion.id)
+      ctx.conversacion.estado_lead = 'listo_para_comprar'
+      await solicitarAsesor(ctx, 'El cliente pidió una persona y está listo para comprar', texto)
+    } else {
+      await solicitarAsesor(ctx, 'El cliente pidió hablar con una persona', texto)
+    }
     return
   }
 
@@ -206,7 +214,7 @@ export async function procesarMensajeCliente(conversacionId: string, texto: stri
   ctx.motor = 'reglas'
 
   // 4) Señales de compra
-  if (coincide(texto, /\b(agendar|agenda|inscribir|inscribirlo|inscribirla|empezar|comenzar|comprar|contratar|reservar|lo quiero|la quiero|me interesa contratar|como pago|pagar)\b/)) {
+  if (coincide(texto, SENALES_COMPRA)) {
     await accionAsesor(ctx, 'El cliente está listo para comprar', texto, true)
     return
   }
