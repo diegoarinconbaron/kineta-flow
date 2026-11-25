@@ -113,6 +113,13 @@ export default function Catalogo() {
     } catch { setError('No pudimos leer el archivo. Verifica que no esté protegido con contraseña.') }
   }
 
+  const descargarOriginal = async (ruta: string) => {
+    const ventana = window.open('', '_blank')
+    const { data } = await supabase.storage.from('archivos').createSignedUrl(ruta, 600, { download: true })
+    if (data?.signedUrl && ventana) ventana.location.href = data.signedUrl
+    else ventana?.close()
+  }
+
   const cancelar = () => { setPrevia(null); setArchivo(null); setProgreso(0); if (input.current) input.current.value = '' }
 
   const confirmar = async () => {
@@ -122,6 +129,10 @@ export default function Catalogo() {
       negocio_id: negocio.id, archivo_origen: archivo.name, version: (activo?.version ?? 0) + 1, estado: 'borrador', creado_por: sesion?.user.id,
     }).select().single()
     if (e1 || !cat) { setError('No se pudo guardar el catálogo.'); setPublicando(false); return }
+    // el archivo original queda guardado en Supabase Storage como respaldo de las tarifas
+    const ruta = `${negocio.id}/catalogos/${cat.id}/${archivo.name.normalize('NFD').replace(/[^\w.\-]+/g, '_')}`
+    const { error: eArchivo } = await supabase.storage.from('archivos').upload(ruta, archivo, { contentType: archivo.type || 'application/octet-stream' })
+    if (!eArchivo) await supabase.from('catalogos').update({ archivo_ruta: ruta }).eq('id', cat.id)
     const { error: e2 } = await supabase.from('servicios').insert(previa.map((f) => ({
       catalogo_id: cat.id, negocio_id: negocio.id, nombre: f.nombre, categoria: f.categoria, nivel: f.nivel, unidad: f.unidad,
       tarifa: f.estado === 'listo' ? f.tarifa : null, estado: f.estado, observacion: f.observacion,
@@ -212,7 +223,8 @@ export default function Catalogo() {
           <h2 className="font-semibold">Catálogo activo</h2>
           {activo ? (
             <dl className="mt-4 space-y-3 text-sm">
-              <div className="flex justify-between"><dt className="text-slate-500">Archivo</dt><dd className="font-medium text-right">{activo.archivo_origen}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Archivo</dt><dd className="text-right font-medium">{activo.archivo_origen}
+                {activo.archivo_ruta && <button type="button" onClick={() => descargarOriginal(activo.archivo_ruta!)} className="block w-full text-right text-xs font-normal text-indigo-600 hover:underline">Descargar archivo original</button>}</dd></div>
               <div className="flex justify-between"><dt className="text-slate-500">Versión</dt><dd className="font-medium">v{activo.version}</dd></div>
               <div className="flex justify-between"><dt className="text-slate-500">Activado</dt><dd className="font-medium">{fechaLarga(activo.activado_en ?? activo.creado_en)}</dd></div>
               <div className="flex justify-between"><dt className="text-slate-500">Servicios que se cotizan</dt><dd className="font-medium text-exito">{servicios.filter((s) => s.estado === 'listo').length}</dd></div>

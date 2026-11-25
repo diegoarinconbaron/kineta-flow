@@ -2,16 +2,48 @@ import { jsPDF } from 'jspdf'
 import { supabase } from './supabase'
 import { fechaLarga, pesos } from './formato'
 
-/** Genera el PDF de una cotización a partir de los datos guardados y lo abre en una pestaña nueva */
+const BUCKET = 'archivos'
+
+/** Abre el PDF de una cotización. Si ya está guardado en Supabase Storage lo abre desde ahí; si no, lo genera y lo guarda. */
 export async function abrirCotizacionPdf(cotizacionId: string) {
   // la pestaña se abre en el mismo clic (antes de consultar los datos) para que el navegador no la bloquee
   const ventana = window.open('', '_blank')
-  ventana?.document.write('<p style="font-family:sans-serif;padding:24px">Generando cotización…</p>')
+  ventana?.document.write('<p style="font-family:sans-serif;padding:24px">Abriendo cotización…</p>')
+  const url = await urlCotizacionPdf(cotizacionId)
+  if (!url) { ventana?.close(); return }
+  if (ventana) ventana.location.href = url
+  else window.location.href = url
+}
+
+/** Genera el PDF y lo guarda en Supabase Storage (<negocio>/cotizaciones/<numero>.pdf). Devuelve la ruta guardada. */
+export async function guardarCotizacionPdf(cotizacionId: string): Promise<string | null> {
+  const r = await generarPdf(cotizacionId)
+  if (!r) return null
+  const ruta = `${r.negocioId}/cotizaciones/${r.numero}.pdf`
+  const { error } = await supabase.storage.from(BUCKET).upload(ruta, r.blob, { contentType: 'application/pdf', upsert: false })
+  if (error && !/exists|duplicate/i.test(error.message)) return null
+  await supabase.from('cotizaciones').update({ pdf_ruta: ruta }).eq('id', cotizacionId)
+  return ruta
+}
+
+async function urlCotizacionPdf(cotizacionId: string): Promise<string | null> {
+  const { data: q } = await supabase.from('cotizaciones').select('pdf_ruta').eq('id', cotizacionId).single()
+  const ruta = q?.pdf_ruta ?? await guardarCotizacionPdf(cotizacionId)
+  if (ruta) {
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(ruta, 600)
+    if (data?.signedUrl) return data.signedUrl
+  }
+  // respaldo: si el almacenamiento no responde, se genera en el navegador
+  const r = await generarPdf(cotizacionId)
+  return r ? URL.createObjectURL(r.blob) : null
+}
+
+async function generarPdf(cotizacionId: string): Promise<{ blob: Blob; numero: string; negocioId: string } | null> {
   const { data: c } = await supabase
     .from('cotizaciones')
     .select('*, items_cotizacion(*), conversaciones(clientes(nombre, telefono)), catalogos(version, archivo_origen), negocios(nombre, ciudad, telefono_whatsapp)')
     .eq('id', cotizacionId).single()
-  if (!c) { ventana?.close(); return }
+  if (!c) return null
   const doc = new jsPDF({ unit: 'pt', format: 'letter' })
   const W = doc.internal.pageSize.getWidth()
   const noche: [number, number, number] = [14, 19, 48]
@@ -65,7 +97,5 @@ export async function abrirCotizacionPdf(cotizacionId: string) {
   doc.text(doc.splitTextToSize(nota, W - 96), 48, y + 30)
   doc.setTextColor(...indigo); doc.text('Atendido por Kineta Flow · kineta-flow.vercel.app', 48, 740)
 
-  const url = String(doc.output('bloburl'))
-  if (ventana) ventana.location.href = url
-  else window.location.href = url
+  return { blob: doc.output('blob'), numero: c.numero, negocioId: c.negocio_id }
 }

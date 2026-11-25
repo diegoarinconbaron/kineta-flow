@@ -51,6 +51,7 @@ export interface Catalogo {
   estado: 'borrador' | 'activo' | 'archivado'
   creado_en: string
   activado_en: string | null
+  archivo_ruta?: string | null
 }
 
 export interface Cliente {

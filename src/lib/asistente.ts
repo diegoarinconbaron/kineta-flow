@@ -1,3 +1,4 @@
+import { guardarCotizacionPdf } from './pdf'
 /**
  * Motor del asistente de Kineta Flow.
  *
@@ -127,6 +128,8 @@ export async function generarCotizacion(ctx: Contexto, servicio: Servicio, canti
     cotizacion_id: cot.id, servicio_id: servicio.id, descripcion, cantidad, valor_unitario: servicio.tarifa, valor_total: subtotal,
   })
   if (e2) { await supabase.from('cotizaciones').delete().eq('id', cot.id); throw e2 }
+  // el PDF queda guardado en Supabase Storage; si falla, se genera al abrirlo
+  guardarCotizacionPdf(cot.id).catch(() => {})
   const unidad = servicio.unidad === 'hora' ? (cantidad === 1 ? 'hora' : 'horas') : (cantidad === 1 ? servicio.unidad : servicio.unidad + 's')
   const textoDescuento = descuento > 0 ? ` con ${porcentaje} % de descuento por paquete` : ''
   await responder(ctx, `Listo. Te envío la cotización formal de ${cantidad} ${unidad} de ${descripcion}${textoDescuento}: total ${pesos(subtotal - descuento)}. Es válida por ${ctx.config.vigencia_cotizacion_dias} días.`,
